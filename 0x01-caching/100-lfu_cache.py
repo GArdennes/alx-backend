@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """ 100-lfu_cache
 """
+from collections import OrderedDict
 BaseCaching = __import__('base_caching').BaseCaching
-from collections import OrderedDict, Counter
 
 
 class LFUCache(BaseCaching):
@@ -15,37 +15,53 @@ class LFUCache(BaseCaching):
         """
         super().__init__()
         self.cache_data = OrderedDict()
-        self.access_count = Counter()
+        self.access_count = []
 
-    def print_cache(self):
-        """ Print the cache
+    def __reorder_items(self, mru_key):
+        """ Reorders the items in the cache based on mru
         """
-        print("Current cache:")
-        for key, value in self.cache_data.items():
-            print("{}: {}".format(key, value))
+        max_positions = []
+        mru_freq = 0
+        mru_pos = 0
+        ins_pos = 0
+        for i, key_freq in enumerate(self.access_count):
+            if key_freq[0] == mru_key:
+                mru_freq = key_freq[1] + 1
+                mru_pos = i
+                break
+            elif len(max_positions) == 0:
+                max_positions.append(i)
+            elif key_freq[1] < self.access_count[max_positions[-1]][1]:
+                max_positions.append(i)
+        max_positions.reverse()
+        for pos in max_positions:
+            if self.access_count[pos][1] > mru_freq:
+                break
+            ins_pos = pos
+        self.access_count.pop(mru_pos)
+        self.access_count.insert(ins_pos, [mru_key, mru_freq])
 
     def put(self, key, item):
         """ Add an item in the cache
         """
         if key is None or item is None:
             return
-        self.cache_data[key] = item
-        self.access_count[key] += 1
-
-        # Eviction logic
-        if len(self.cache_data) > BaseCaching.MAX_ITEMS:
-            lfu_candidates = [
-                    key for key, _ in self.cache_data.items()
-                        if self.access_count[key] == min(
-                            self.access_count.values()
-                            )]
-            if len(lfu_candidates) > 1:
-                discarded_item = next(iter(self.cache_data))
-            else:
-                discarded_item = lfu_candidates[0]
-            del self.cache_data[discarded_item]
-            del self.access_count[discarded_item]
-            print(f"DISCARD: {discarded_item}")
+        if key not in self.cache_data:
+            if len(self.cache_data) + 1 > BaseCaching.MAX_ITEMS:
+                lfu_key, _ = self.access_count[-1]
+                self.cache_data.pop(lfu_key)
+                self.access_count.pop()
+                print(f"DISCARD: {lfu_key}")
+            self.cache_data[key] = item
+            ins_index = len(self.access_count)
+            for i, access_count in enumerate(self.access_count):
+                if access_count[1] == 0:
+                    ins_index = i
+                    break
+            self.access_count.insert(ins_index, [key, 0])
+        else:
+            self.cache_data[key] = item
+            self.__reorder_items(key)
 
     def get(self, key):
         """ Get an item by key
@@ -53,7 +69,5 @@ class LFUCache(BaseCaching):
         if key is None:
             return None
         if key in self.cache_data:
-            elf.access_count[key] += 1
-            self.cache_data.move_to_end(key, last=False)
-            return self.cache_data[key]
-        return None
+            self.__reorder_items(key)
+        return self.cache_data.get(key, None)
