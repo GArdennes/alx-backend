@@ -42,5 +42,6 @@ class LRUCache(BaseCaching):
         """
         if key is None:
             return None
-        self.cache_data.move_to_end(key, last=False)
+        elif key in self.cache_data:
+            self.cache_data.move_to_end(key, last=False)
         return self.cache_data.get(key)
