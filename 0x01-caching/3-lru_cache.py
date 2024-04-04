@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """ 3-lru_cache
 """
-BaseCaching = __import__('base_caching').BaseCaching
 from collections import OrderedDict
+BaseCaching = __import__('base_caching').BaseCaching
 
 
 class LRUCache(BaseCaching):
@@ -28,17 +28,14 @@ class LRUCache(BaseCaching):
         """
         if key is None or item is None:
             return
-        self.cache_data[key] = item
-
-        # Move the accessed key to the front
-        self.cache_data.move_to_end(key)
-
-        if len(self.cache_data) > BaseCaching.MAX_ITEMS:
-            # Evict least recently used item
-            discarded_item = self.cache_data.popitem(
-                    last=False
-                    )
-            print(f"DISCARD: {discarded_item[0]}")
+        if key not in self.cache_data:
+            if len(self.cache_data) + 1 > BaseCaching.MAX_ITEMS:
+                lru_key, _ = self.cache_data.popitem(True)
+                print(f"DISCORD: {lru_key}")
+            self.cache_data[key] = item
+            self.cache_data.move_to_end(key, last=False)
+        else:
+            self.cache_data[key] = item
 
     def get(self, key):
         """ Get an item by key
