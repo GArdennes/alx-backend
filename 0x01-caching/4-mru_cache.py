@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 """ 4-mru_cache
 """
-BaseCaching = __import__('base_caching').BaseCaching
 from collections import OrderedDict
+BaseCaching = __import__('base_caching').BaseCaching
 
 
 class MRUCache(BaseCaching):
@@ -28,15 +28,14 @@ class MRUCache(BaseCaching):
         """
         if key is None or item is None:
             return
-        self.cache_data[key] = item
-
-        # Move the accessed key to the front (mark as recently used)
-        self.cache_data.move_to_end(key, last=False)
-
-        if len(self.cache_data) > BaseCaching.MAX_ITEMS:
-            # Evict least recently used item (at the back of OrderedDict)
-            discarded_item = self.cache_data.popitem(last=True)
-            print(f"DISCARD: {discarded_item[0]}")
+        if key is not in self.cache_data:
+            if len(self.cache_data) + 1 > BaseCaching.MAX_ITEMS:
+                mru_key, _ = self.cache_data.popitem(False)
+                print(f"DISCARD: {mru_key}")
+            self.cache_data[key] = item
+            self.cache_data.move_to_end(key, last=False)
+        else:
+            self.cache_data[key] = item
 
     def get(self, key):
         """ Get an item by key
@@ -44,5 +43,6 @@ class MRUCache(BaseCaching):
         if key is None:
             return None
         # Move the accessed key to the front (mark as recently used)
-        self.cache_data.move_to_end(key, last=False)
+        if key is not None and key in self.cache_data:
+            self.cache_data.move_to_end(key, last=False)
         return self.cache_data.get(key)
