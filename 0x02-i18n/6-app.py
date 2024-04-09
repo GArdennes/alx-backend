@@ -2,7 +2,7 @@
 """
 app: A basic Flask application
 """
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, g
 from flask_babel import Babel
 
 
@@ -48,9 +48,14 @@ def get_locale() -> str:
     """
     Determines the user's preferred locale based on their browser settings
     """
+    header_locale = request.headers.get('locale')
     locale = request.args.get('locale')
     if locale in app.config['LANGUAGES']:
         return locale
+    if g.user and g.user['locale'] in app.config["LANGUAGES"]:
+        return g.user['locale']
+    if header_locale in app.config["LANGUAGES"]:
+        return header_locale
     return request.accept_languages.best_match(app.config['LANGUAGES'])
 
 
